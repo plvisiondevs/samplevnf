@@ -57,7 +57,11 @@ INC += $(wildcard $(VNF_CORE)/common/VIL/pipeline_txrx/*.h)
 INC += $(wildcard $(VNF_CORE)/common/VIL/acl/*.h)
 INC += $(wildcard $(VNF_CORE)/common/VIL/gateway/*.h)
 
-CFLAGS += -I$(SRCDIR) -mrtm -mhle -I$(SRCDIR)/pipeline -I$(VNF_CORE)/common/vnf_common
+ifeq ($(findstring arm, $(RTE_TARGET)),)
+CFLAGS += -mrtm -mhle
+endif
+
+CFLAGS += -I$(SRCDIR) -I$(SRCDIR)/pipeline -I$(VNF_CORE)/common/vnf_common
 CFLAGS += -I$(VNF_CORE)/common/VIL/conntrack -I$(VNF_CORE)/common/VIL/l2l3_stack
 CFLAGS += -I$(VNF_CORE)/common/VIL/pipeline_common -I$(VNF_CORE)/common/VIL/pipeline_loadb
 CFLAGS += -I$(VNF_CORE)/common/VIL/pipeline_master -I$(VNF_CORE)/common/VIL/pipeline_passthrough

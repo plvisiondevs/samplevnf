@@ -812,7 +812,11 @@ static void *pipeline_arpicmp_init(struct pipeline_params *params,
 
 	p_arp->receivedPktCount = 0;
 	p_arp->droppedPktCount = 0;
+#if RTE_VERSION < RTE_VERSION_NUM(18, 5, 0, 0)
 	gw_init(rte_eth_dev_count());
+#else
+	gw_init(rte_eth_dev_count_avail());
+#endif
 	lib_arp_init(params, app);
 
 	/* Pipeline */

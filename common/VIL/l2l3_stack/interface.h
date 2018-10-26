@@ -63,6 +63,7 @@
 #include <rte_port_ethdev.h>
 #include <rte_eth_bond.h>
 #include <rte_rwlock.h>
+#include <rte_version.h>
 
 #define RTE_LOGTYPE_IFM RTE_LOGTYPE_USER1
 #define IFM_SUCCESS  0
@@ -205,11 +206,19 @@ struct bond_port {
 						/**<frequency of informing linkdown delay.*/
 	uint8_t primary;
 			/**<primary port of this bond.*/
-	uint8_t slaves[RTE_MAX_ETHPORTS];
+#if RTE_VERSION < RTE_VERSION_NUM(17, 11, 0, 0)
+        uint8_t slaves[RTE_MAX_ETHPORTS];
+#else
+        uint16_t slaves[RTE_MAX_ETHPORTS];
+#endif
 					 /**<list of slaves*/
 	int slave_count;
 		 /**<slave count.*/
+#if RTE_VERSION < RTE_VERSION_NUM(17, 11, 0, 0)
 	uint8_t active_slaves[RTE_MAX_ETHPORTS];
+#else
+        uint16_t active_slaves[RTE_MAX_ETHPORTS];
+#endif
 					 /**<list of active slaves.*/
 	int active_slave_count;
 			/**<cnt of active slave.*/
@@ -641,13 +650,32 @@ void ifm_register_for_linkupdate(uint32_t clientid,
  *   pmd id of the port
  * @param type
  *   lsi event type
- * @param
+ * @param param
  *   Currently not used
+ * @param ret_param
+ *   Currently not used
+ * @returns
+ *   An integer 0
+ */
+int lsi_event_callback(uint16_t port_id, enum rte_eth_event_type type,
+			void *param, void *ret_param);
+
+/**
+ * Callback which is triggered at the time of link state change which in turn triggers registered
+ * clients callback
+ * This version is provided for compatibility with dpdk 17.05 and below
  *
+ * @param portid
+ *   pmd id of the port
+ * @param type
+ *   lsi event type
+ * @param param
+ *   Currently not used
  * @returns
  *   none
  */
-void lsi_event_callback(uint8_t port_id, enum rte_eth_event_type type,
+
+void lsi_event_callback_old(uint8_t port_id, enum rte_eth_event_type type,
 			void *param);
 /*
  * Prints list of interfaces

@@ -1008,7 +1008,14 @@ void print_nd_table(void)
 void remove_arp_entry(struct arp_entry_data *ret_arp_data, void *arg)
 {
 
-	struct arp_timer_key *arp_key = (struct arp_timer_key *)arg;
+	struct arp_timer_key *timer_key = (struct arp_timer_key *)arg;
+	struct arp_key_ipv4 arp_key;
+	arp_key.ip = timer_key->ip;
+	arp_key.port_id = timer_key->port_id;
+	arp_key.filler1 = 0;
+	arp_key.filler2 = 0;
+	arp_key.filler3 = 0;
+
 	lib_arp_delete_called++;
 
 	if (ret_arp_data->timer) {
@@ -1021,13 +1028,13 @@ void remove_arp_entry(struct arp_entry_data *ret_arp_data, void *arg)
 	if (ARPICMP_DEBUG) {
 		RTE_LOG(INFO, LIBARP,
 			"ARP Entry Deleted for IP :%d.%d.%d.%d , port %d\n",
-			(arp_key->ip >> 24),
-			((arp_key->ip & 0x00ff0000) >> 16),
-			((arp_key->ip & 0x0000ff00) >>  8),
-			((arp_key->ip & 0x000000ff)),
-			arp_key->port_id);
+			(arp_key.ip >> 24),
+			((arp_key.ip & 0x00ff0000) >> 16),
+			((arp_key.ip & 0x0000ff00) >>  8),
+			((arp_key.ip & 0x000000ff)),
+			arp_key.port_id);
 	}
-	rte_hash_del_key(arp_hash_handle, arp_key);
+	rte_hash_del_key(arp_hash_handle, &arp_key);
 	print_arp_table();
 }
 
@@ -1036,24 +1043,34 @@ void remove_nd_entry_ipv6(struct nd_entry_data *ret_nd_data, void *arg)
 {
 	int i = 0;
 	struct nd_timer_key *timer_key = (struct nd_timer_key *)arg;
+	struct nd_key_ipv6 nd_key;
+	nd_key.port_id = timer_key->port_id;
+
+	for (i = 0; i < ND_IPV6_ADDR_SIZE; i++) {
+		nd_key.ipv6[i] = timer_key->ipv6[i];
+	}
+
+	nd_key.filler1 = 0;
+	nd_key.filler2 = 0;
+	nd_key.filler3 = 0;
 
 	lib_nd_delete_called++;
 
-        rte_timer_stop(ret_nd_data->timer);
-        rte_free(ret_nd_data->timer_key);
-        rte_free(ret_nd_data->buf_pkts);
-        ret_nd_data->buf_pkts = NULL;
+	rte_timer_stop(ret_nd_data->timer);
+	rte_free(ret_nd_data->timer_key);
+	rte_free(ret_nd_data->buf_pkts);
+	ret_nd_data->buf_pkts = NULL;
 
-        if (NDIPV6_DEBUG) {
-                RTE_LOG(INFO, LIBARP,
-                        "Deletes rte hash table nd entry for port %d ipv6=",
-                        timer_key->port_id);
-                for (i = 0; i < ND_IPV6_ADDR_SIZE; i += 2) {
-                        RTE_LOG(INFO, LIBARP, "%02X%02X ", timer_key->ipv6[i],
-                                timer_key->ipv6[i + 1]);
-                }
-        }
-        rte_hash_del_key(nd_hash_handle, timer_key);
+	if (NDIPV6_DEBUG) {
+			RTE_LOG(INFO, LIBARP,
+					"Deletes rte hash table nd entry for port %d ipv6=",
+					timer_key->port_id);
+			for (i = 0; i < ND_IPV6_ADDR_SIZE; i += 2) {
+					RTE_LOG(INFO, LIBARP, "%02X%02X ", timer_key->ipv6[i],
+							timer_key->ipv6[i + 1]);
+			}
+	}
+	rte_hash_del_key(nd_hash_handle, &nd_key);
 }
 
 int
@@ -2527,7 +2544,11 @@ void lib_arp_init(struct pipeline_params *params,
 
 	/* acquire the mac addresses */
 	struct ether_addr hw_addr;
-	uint8_t nb_ports = rte_eth_dev_count();
+#if RTE_VERSION < RTE_VERSION_NUM(18, 5, 0, 0)
+	int nb_ports = rte_eth_dev_count();
+#else
+	int nb_ports = rte_eth_dev_count_avail();
+#endif
 
 	for (i = 0; i < nb_ports; i++) {
 		rte_eth_macaddr_get(i, &hw_addr);

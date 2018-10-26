@@ -28,10 +28,15 @@
 #include "parser.h"
 #include "hash_func.h"
 
+typedef uint64_t (* pipeline_passthrough_hash_func)(
+	void *key,
+	uint32_t key_size,
+	uint64_t seed);
+
 struct pipeline_passthrough {
 	struct pipeline p;
 	struct pipeline_passthrough_params params;
-	rte_table_hash_op_hash f_hash;
+	pipeline_passthrough_hash_func f_hash;
 } __rte_cache_aligned;
 
 static pipeline_msg_req_handler handlers[] = {
@@ -534,19 +539,19 @@ pipeline_passthrough_parse_args(struct pipeline_passthrough_params *p,
 }
 
 
-static rte_table_hash_op_hash
+static pipeline_passthrough_hash_func
 get_hash_function(struct pipeline_passthrough *p)
 {
 	switch (p->params.dma_size) {
 
-	case 8: return hash_default_key8;
-	case 16: return hash_default_key16;
-	case 24: return hash_default_key24;
-	case 32: return hash_default_key32;
-	case 40: return hash_default_key40;
-	case 48: return hash_default_key48;
-	case 56: return hash_default_key56;
-	case 64: return hash_default_key64;
+	case 8: return hash_default_unmasked_key8;
+	case 16: return hash_default_unmasked_key16;
+	case 24: return hash_default_unmasked_key24;
+	case 32: return hash_default_unmasked_key32;
+	case 40: return hash_default_unmasked_key40;
+	case 48: return hash_default_unmasked_key48;
+	case 56: return hash_default_unmasked_key56;
+	case 64: return hash_default_unmasked_key64;
 	default: return NULL;
 	}
 }

@@ -94,7 +94,11 @@ void ifm_init(void)
 		else
 			rte_rwlock_write_unlock(&rwlock);
 	}
+#if RTE_VERSION < RTE_VERSION_NUM(18, 5, 0, 0)
 	ifm.nport_intialized = rte_eth_dev_count();
+#else
+	ifm.nport_intialized = rte_eth_dev_count_avail();
+#endif
 	ifm.nport_configured = 0;
 	RTE_LOG(INFO, IFM, "IFM_INIT: Number of ports initialized during "
 		"PCI probing %u.\n\r", ifm.nport_intialized);
@@ -296,8 +300,8 @@ l2_phy_interface_t *ifm_get_port_by_name(const char *name)
 	return NULL;
 }
 
-void lsi_event_callback(uint8_t port_id, enum rte_eth_event_type type,
-			void *param)
+int lsi_event_callback(uint16_t port_id, enum rte_eth_event_type type,
+			void *param, void *ret_param)
 {
 	struct rte_eth_link link;
 	l2_phy_interface_t *port;
@@ -306,6 +310,7 @@ void lsi_event_callback(uint8_t port_id, enum rte_eth_event_type type,
 
 	RTE_SET_USED(param);
 	RTE_SET_USED(type);
+	RTE_SET_USED(ret_param);
 
 	if (ifm_debug & IFM_DEBUG_LOCKS)
 		RTE_LOG(INFO, IFM, "%s: Acquiring WR lock @ %d\n\r",
@@ -427,7 +432,17 @@ void lsi_event_callback(uint8_t port_id, enum rte_eth_event_type type,
 		}
 	}
 	//print_interface_details();
+
+	return 0;
 }
+
+#if RTE_VERSION < RTE_VERSION_NUM(17, 11, 0, 0)
+void lsi_event_callback_old(uint8_t port_id, enum rte_eth_event_type type,
+			void *param)
+{
+	lsi_event_callback(port_id, type, param, NULL);
+}
+#endif
 
 void ifm_update_linkstatus(uint8_t port_id, uint16_t linkstatus)
 {
@@ -1148,9 +1163,15 @@ int ifm_port_setup(uint8_t port_id, port_config_t *pconfig)
 			"for port %u.\n\r", __FUNCTION__, port_id);
 		return IFM_FAILURE;
 	}
+#if RTE_VERSION < RTE_VERSION_NUM(17, 11, 0, 0)
+	status = rte_eth_dev_callback_register(port_id,
+								 RTE_ETH_EVENT_INTR_LSC,
+								 lsi_event_callback_old, NULL);
+#else
 	status = rte_eth_dev_callback_register(port_id,
 								 RTE_ETH_EVENT_INTR_LSC,
 								 lsi_event_callback, NULL);
+#endif
 	if (status < 0) {
 		ifm_remove_port_details(port_id);
 		RTE_LOG(ERR, IFM, "%s: rte_eth_dev_callback_register()"

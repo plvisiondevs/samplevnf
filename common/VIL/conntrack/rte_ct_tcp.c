@@ -16,7 +16,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <immintrin.h>
+//#include <immintrin.h>
 #include <inttypes.h>
 #include "rte_ct_tcp.h"
 #include "rte_cnxn_tracking.h"

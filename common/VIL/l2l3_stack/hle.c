@@ -15,7 +15,10 @@
 */
 #include "tsx.h"
 //#include "hle.h"
+
+#if !defined(__arm___) && !defined(__aarch64__)
 #include <xmmintrin.h>
+#endif
 
 void hle_init(void)
 {
@@ -24,16 +27,29 @@ void hle_init(void)
 
 int hle_lock(void)
 {
+#if !defined(__arm__) && !defined(__aarch64__)
 	while (__atomic_exchange_n
 				 (&mutex_val, 1, __ATOMIC_ACQUIRE | __ATOMIC_HLE_ACQUIRE))
 		_mm_pause();
+#else
+	while (__atomic_exchange_n
+				 (&mutex_val, 1, __ATOMIC_ACQUIRE ))
+		__asm__ __volatile__ ("yield");
+#endif
 	return TRUE;
 }
 
+
+
 int hle_release(void)
 {
+#if !defined(__arm__) && !defined(__aarch64__)
 	__atomic_store_n(&mutex_val, 0,
 			 __ATOMIC_RELEASE | __ATOMIC_HLE_RELEASE);
+#else
+	__atomic_store_n(&mutex_val, 0,
+			 __ATOMIC_RELEASE);
+#endif
 	return TRUE;
 }
 

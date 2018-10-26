@@ -27,7 +27,11 @@ CGNAPT       := $(VNF_DIR)/vCGNAPT
 UDP_Replay   := $(VNF_DIR)/UDP_Replay
 PROX         := $(VNF_DIR)/DPPD-PROX
 
-subdirs      := $(ACL) $(CGNAPT) $(FW) $(UDP_Replay) ${PROX}
+subdirs      := $(ACL) $(CGNAPT) $(FW)
+
+ifeq ($(findstring arm, $(RTE_TARGET)),)
+subdirs      += $(UDP_Replay) ${PROX}
+endif
 
 .PHONY: $(TARGETS) $(subdirs)
 

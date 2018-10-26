@@ -14,7 +14,10 @@
 // limitations under the License.
 */
 
+#if !defined(__arm__) && !defined(__aarch64__)
 #include <immintrin.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -101,11 +104,15 @@ check_4th_gen_intel_core_features (void)
 int
 can_use_intel_core_4th_gen_features (void)
 {
+#if defined(__arm__) || defined(__aarch64__)
+  return 0;
+#else
   static int the_4th_gen_features_available = -1;
   /* test is performed once */
   if (the_4th_gen_features_available < 0)
     the_4th_gen_features_available = check_4th_gen_intel_core_features ();
   return the_4th_gen_features_available;
+#endif
 }
 
 void
@@ -118,6 +125,7 @@ rtm_init (void)
 
 rtm_lock (void)
 {
+#if !defined(__arm__) && !defined(__aarch64__)
   int nretries = 0;
   while (1) {
       ++nretries;
@@ -145,6 +153,7 @@ rtm_lock (void)
       if (nretries >= max_retries)
 	break;			// too many retries, take the fall-back lock
     }
+#endif
   hle_lock ();
   return 1;
 }
@@ -154,14 +163,19 @@ rtm_unlock (void)
 {
   if (is_hle_locked ())
     hle_release ();
-
+#if !defined(__arm__) && !defined(__aarch64__)
   else
     _xend ();
+#endif
   return 1;
 }
 
 int
 is_rtm_locked (void)
 {
+#if !defined(__arm__) && !defined(__aarch64__)
   return ((int) _xtest ());
+#else
+  return 0;
+#endif
 }
